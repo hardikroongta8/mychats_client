@@ -4,7 +4,6 @@ import 'package:mychats/services/my_contact_service.dart';
 import 'package:mychats/services/session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:mychats/shared/loading.dart';
-import 'dart:developer';
 
 class ContactScreen extends StatefulWidget {
   final SessionService session;

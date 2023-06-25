@@ -49,7 +49,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     return textPainter.size;
   }
 
-  void saveMessagesToDB()async{
+  void saveMessagesToDB(bool isOffline)async{
     final msgs = socketMessages;
 
     widget.session.socket.emit('dataSavedOnCloud', {
@@ -60,10 +60,17 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     // STORE SOCKET MESSAGES IN LOCAL VARIABLE IN THE SCOPE OF THE FUNCTION
 
     // ALSO TRY SAVING DATA TO CLOUD ONLY IN DISPOSE FUNCTION
-    
-    String res = await MongoDBService().sendMessage({
+    int count = 0;
+    if(isOffline){
+      count = msgs.length;
+    }
+    String res = await MongoDBService().saveMessages({
       'roomId': roomId(widget.phoneNumber),
-      'messageList': msgs
+      'messageList': msgs,
+      'unreadMessages': {
+        'count': count,
+        'phoneNumber': widget.phoneNumber
+      }
     });
 
     widget.session.socket.emit('refreshView', {
@@ -106,7 +113,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
             (timer){
               log('tick ${widget.displayName}');
               if(socketMessages.isNotEmpty){
-                saveMessagesToDB();
+                saveMessagesToDB(false);
               }
             }
           );
@@ -124,7 +131,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
             (timer){
               log('tick ${widget.displayName}');
               if(socketMessages.isNotEmpty){
-                saveMessagesToDB();
+                saveMessagesToDB(true);
               }
             }
           );
@@ -185,7 +192,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     (timer){
       log('tick ${widget.displayName}');
       if(socketMessages.isNotEmpty){
-        saveMessagesToDB();
+        saveMessagesToDB(true);
       }
     }
   );
@@ -197,7 +204,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     //periodicTimer.cancel();
     if(socketMessages.isNotEmpty){
-      saveMessagesToDB();
+      saveMessagesToDB(!isOnline);
     }
     socketMessages = [];
     log('cancelling the timer');

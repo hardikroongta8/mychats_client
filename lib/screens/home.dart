@@ -116,9 +116,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 ),
               ),
               const SizedBox(height: 8,),
-              const CircleAvatar(
+              activeRooms[index]['count'] == 0 || activeRooms[index]['count'] == null ? const SizedBox() : CircleAvatar(
                 radius: 10,
-                child: Text('10', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w300),),
+                child: Text(activeRooms[index]['count'].toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w300),),
               )
             ],
           ),
