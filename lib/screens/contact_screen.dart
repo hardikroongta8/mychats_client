@@ -1,22 +1,25 @@
 import 'package:mychats/screens/chats/personal_chat.dart';
 import 'package:mychats/services/auth_service.dart';
 import 'package:mychats/services/my_contact_service.dart';
+import 'package:mychats/services/session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:mychats/shared/loading.dart';
+import 'dart:developer';
 
 class ContactScreen extends StatefulWidget {
-  const ContactScreen({super.key});
+  final SessionService session;
+  const ContactScreen({required this.session, super.key});
 
   @override
   State<ContactScreen> createState() => _ContactScreenState();
 }
 
 class _ContactScreenState extends State<ContactScreen> {
-  List<Map> contactInfo = [];
+  List contactInfo = [];
 
   bool isLoading = true;
 
-  void getContacts()async{
+  void getAndUpdateContacts()async{
     if(mounted){
       final contactList = await MyContactService().fetchContacts();
       if(mounted){
@@ -29,10 +32,21 @@ class _ContactScreenState extends State<ContactScreen> {
     }
   }
 
+  void getContactsFromDB()async{
+    final contactList = await MyContactService().getContactsFromDB();
+    if(mounted){
+      setState(() {
+        contactInfo = contactList;
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    getContacts();
+    getContactsFromDB();
+    getAndUpdateContacts();
   }
   
   @override
@@ -59,6 +73,8 @@ class _ContactScreenState extends State<ContactScreen> {
                 builder: (context) => PersonalChat(
                   phoneNumber: contactInfo[index]['phoneNumber'],
                   displayName: contactInfo[index]['displayName'],
+                  session: widget.session,
+
                 )
               )
             );

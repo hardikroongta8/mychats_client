@@ -44,7 +44,6 @@ dependencies:
   permission_handler: ^10.3.0
   contacts_service: ^0.6.3
   socket_io_client: ^2.0.2
-  sqflite: ^2.2.8+4
   intl: ^0.18.1
 
 dev_dependencies:

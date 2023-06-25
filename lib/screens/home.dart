@@ -64,7 +64,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context){
-    sessionService.joinMyRoom();
+    sessionService.socket.on('refreshView', (data){
+      log('refreshView');
+      getActiveChats();
+    });
     return Scaffold(
       appBar: AppBar(
         elevation: 1,
@@ -79,6 +82,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                 builder: (context) => PersonalChat(
                   phoneNumber: activeRooms[index]['phoneNumber'],
                   displayName: activeRooms[index]['displayName'],
+                  session: sessionService,
                 )
               )
             ).then((value){getActiveChats();});
@@ -125,7 +129,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         onPressed: (){
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ContactScreen())
+            MaterialPageRoute(builder: (context) => ContactScreen(session: sessionService,))
           );
         },
         child: const Icon(Icons.message),

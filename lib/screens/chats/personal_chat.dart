@@ -11,14 +11,14 @@ import 'dart:ui' as ui;
 class PersonalChat extends StatefulWidget {
   final String phoneNumber;
   final String displayName;
-  const PersonalChat({required this.phoneNumber, required this.displayName, super.key});
+  final SessionService session;
+  const PersonalChat({required this.session, required this.phoneNumber, required this.displayName, super.key});
 
   @override
   State<PersonalChat> createState() => _PersonalChatState();
 }
 
 class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver {
-  final sessionService = SessionService();
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   final msgStyle = const TextStyle(
@@ -52,7 +52,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   void saveMessagesToDB()async{
     final msgs = socketMessages;
 
-    sessionService.socket.emit('dataSavedOnCloud', {
+    widget.session.socket.emit('dataSavedOnCloud', {
       'roomId': roomId(widget.phoneNumber)
     });
 
@@ -66,7 +66,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
       'messageList': msgs
     });
 
-    sessionService.socket.emit('refreshView', {
+    widget.session.socket.emit('refreshView', {
       'roomId': roomId(widget.phoneNumber)
     });
 
@@ -93,9 +93,10 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   }
 
   void checkOnline(){
-    sessionService.socket.on(
+    widget.session.socket.on(
       'clientsInRoom',
       (data){
+        log('check for ${widget.displayName}');
         log(data.toString());
         
         if(data['clientList'] == 2){
@@ -103,7 +104,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
           periodicTimer = Timer.periodic(
             const Duration(seconds: 10),
             (timer){
-              log('tick');
+              log('tick ${widget.displayName}');
               if(socketMessages.isNotEmpty){
                 saveMessagesToDB();
               }
@@ -121,7 +122,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
           periodicTimer = Timer.periodic(
             const Duration(seconds: 1), 
             (timer){
-              log('tick');
+              log('tick ${widget.displayName}');
               if(socketMessages.isNotEmpty){
                 saveMessagesToDB();
               }
@@ -144,7 +145,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
 
     if(state == AppLifecycleState.resumed){
       log('App state resumed');
-      sessionService.joinPersonalRoom(widget.phoneNumber);
+      widget.session.joinPersonalRoom(widget.phoneNumber);
     }
   }
 
@@ -152,10 +153,10 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    sessionService.joinPersonalRoom(widget.phoneNumber);
+    widget.session.joinPersonalRoom(widget.phoneNumber);
     getMessages();
 
-    sessionService.socket.on('sentMessage',
+    widget.session.socket.on('sentMessage',
       (data){
         log('Message received');
         if(mounted){
@@ -166,14 +167,14 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
         }
     });
 
-    sessionService.socket.on('dataSaved',
+    widget.session.socket.on('dataSaved',
       (data){
         log('emptying socket messages');
         socketMessages = [];
       }
     );
 
-    sessionService.socket.emit('findClientsInRoom', {
+    widget.session.socket.emit('findClientsInRoom', {
       'roomId': roomId(widget.phoneNumber)
     });
 
@@ -182,7 +183,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     periodicTimer = Timer.periodic(
     const Duration(seconds: 1),
     (timer){
-      log('tick');
+      log('tick ${widget.displayName}');
       if(socketMessages.isNotEmpty){
         saveMessagesToDB();
       }
@@ -191,20 +192,22 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   }
 
   @override
-  void dispose() {
+  void dispose() {    
+    super.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    periodicTimer.cancel();
+    //periodicTimer.cancel();
     if(socketMessages.isNotEmpty){
       saveMessagesToDB();
     }
     socketMessages = [];
-    sessionService.leaveRoom(widget.phoneNumber);
-    sessionService.socket.emit('findClientsInRoom', {
+    log('cancelling the timer');
+
+    periodicTimer.cancel();
+    widget.session.leaveRoom(widget.phoneNumber);
+    widget.session.socket.emit('findClientsInRoom', {
       'roomId': roomId(widget.phoneNumber)
     });
-    sessionService.disconnectSocket();
-
-    super.dispose();
+    widget.session.socket.clearListeners();
   }
 
   @override
@@ -357,7 +360,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
                         child: IconButton(
                           onPressed: (){
                             if(_controller.text.isEmpty)return;
-                            sessionService.sendMessage(_controller.text, widget.phoneNumber);
+                            widget.session.sendMessage(_controller.text, widget.phoneNumber);
                             _controller.clear();
                           },
                           icon: const Icon(Icons.send)

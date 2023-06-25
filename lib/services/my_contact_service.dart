@@ -71,4 +71,17 @@ class MyContactService{
       log(res.body);
     }
   }
+
+  Future<List> getContactsFromDB()async{
+    final String firebaseId = AuthService().firebaseId!;
+
+    http.Response res = await http.get(
+      Uri.parse('${uri}user/get_contact_info/$firebaseId'),
+      headers: {'Content-Type': 'application/json'}
+    );
+
+    final contactInfo = jsonDecode(res.body)['contactInfo'];
+
+    return contactInfo;
+  }
 }
