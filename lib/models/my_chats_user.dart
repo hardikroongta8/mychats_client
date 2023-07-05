@@ -1,5 +1,3 @@
-import 'dart:io';
-
 class MyChatsUser{
   String firebaseId;
   String phoneNumber;

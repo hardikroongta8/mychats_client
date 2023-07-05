@@ -1,4 +1,7 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:mychats/interceptors/request_retrier.dart';
+import 'package:mychats/interceptors/retry_interceptor.dart';
 import 'package:mychats/shared/endpoints.dart';
 
 class ApiService{
@@ -11,7 +14,16 @@ class ApiService{
     )
   );
 
-  ApiService();
+  ApiService(){
+    dio.interceptors.add(
+      RetryOnConnectionChangeInterceptor(
+        requestRetrier: RequestRetrier(
+          connectivity: Connectivity(),
+          dio: dio
+        ),
+      ),
+    );
+  }
 
   Future<Response> getRequest({required String path}){
     return dio.get(path);

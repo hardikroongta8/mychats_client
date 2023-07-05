@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mychats/shared/constants.dart';
-import 'package:country_picker/country_picker.dart';
 
 class PhoneVerification extends StatefulWidget {
   const PhoneVerification({super.key});
@@ -107,33 +106,10 @@ class _PhoneVerificationState extends State<PhoneVerification> {
                       keyboardType: TextInputType.phone,
                       decoration: textInputDecration.copyWith(
                         hintText: 'Phone number',
-                        prefixIcon: InkWell(
-                          onTap: (){
-                            showCountryPicker(
-                              context: context,
-                              favorite: ['IN'],
-                              countryListTheme: CountryListThemeData(
-                                inputDecoration: textInputDecration.copyWith(
-                                  prefixIcon: const Icon(Icons.search_rounded),
-                                  hintText: 'Search'
-                                ),
-                                bottomSheetHeight: 500,
-                                margin: const EdgeInsets.symmetric(horizontal:10)
-                              ),
-                              onSelect: (Country country){
-                                if(mounted){
-                                  setState(() {
-                                    code = '+${country.phoneCode}';
-                                  });
-                                }
-                              }
-                            );
-                          },
-                          child: SizedBox(
-                            width: 60,
-                            child: Center(
-                              child: Text(code),
-                            ),
+                        prefixIcon: SizedBox(
+                          width: 60,
+                          child: Center(
+                            child: Text(code),
                           ),
                         )
                       ),
