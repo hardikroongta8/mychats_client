@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -18,9 +17,7 @@ class RequestRetrier{
     streamSubscription = connectivity.onConnectivityChanged.listen(
       (connectivityResult){
         if(connectivityResult != ConnectivityResult.none){
-          log('Retrying');
           streamSubscription!.cancel();
-          log('cancelled');
           responseCompleter.complete(
             dio.fetch(requestOptions)
           );
