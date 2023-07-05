@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:mychats/services/image_service.dart';
 import 'package:mychats/services/my_contact_service.dart';
 import 'package:mychats/services/shared_prefs.dart';
 import 'package:mychats/shared/loading.dart';
@@ -17,6 +21,7 @@ class SetupProfile extends StatefulWidget {
 
 class _SetupProfileState extends State<SetupProfile> {
   bool isLoading = false;
+  File? image;
 
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController aboutController = TextEditingController(text: 'Hey there! I am using MyChats.');
@@ -33,11 +38,20 @@ class _SetupProfileState extends State<SetupProfile> {
     }
   }
 
+  void pickImage(bool isCamera)async{
+    File? img = await ImageService().pickImage(isCamera);
+    setState(() {
+      if(img!=null)image=img;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     getContacts();
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -61,8 +75,38 @@ class _SetupProfileState extends State<SetupProfile> {
                 SizedBox(
                   height: screenHeight*0.08,
                 ),
-                CircleAvatar(
-                  radius: screenWidth * 0.35,
+                GestureDetector(
+                  onTap: (){
+                    showModalBottomSheet(
+                      context: context, 
+                      builder: (context) => SizedBox(
+                        width: double.infinity,
+                        height: screenHeight*0.15,
+                        child: Column(
+                          children: [
+                            TextButton(
+                              onPressed: (){
+                                Navigator.pop(context);
+                                pickImage(true);
+                              },
+                              child: const Text('Capture an image')
+                            ),
+                            TextButton(
+                              onPressed: (){
+                                Navigator.pop(context);
+                                pickImage(false);
+                              },
+                              child: const Text('Pick from gallery')
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  child: CircleAvatar(
+                    radius: screenWidth * 0.35,
+                    backgroundImage: image == null ? null : FileImage(image!),
+                  ),
                 ),
                 SizedBox(
                   height: screenHeight*0.08,
@@ -104,13 +148,17 @@ class _SetupProfileState extends State<SetupProfile> {
                     setState(() {
                       isLoading = true;
                     });
+                    List<int>? imageData;
+
+                    if(image!=null)imageData = await image!.readAsBytes();
 
                     MyChatsUser myUser = MyChatsUser(
                       firebaseId: user!.uid, 
                       phoneNumber: user.phoneNumber!,
                       fullName: fullNameController.text.trim(), 
                       contactInfo: contactInfo,
-                      about: aboutController.text
+                      about: aboutController.text,
+                      profilePicData: imageData == null ? null : base64Encode(imageData)
                     );
 
                     await MongoDBService().createUser(myUser);

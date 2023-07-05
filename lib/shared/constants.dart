@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-const String uri = 'http://192.168.1.8:8080/';
-// const String uri = 'https://mychats-1.onrender.com/';
-
 final textInputDecration = InputDecoration(
   hintText: '',
   focusedBorder: OutlineInputBorder(

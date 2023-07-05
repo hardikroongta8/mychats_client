@@ -1,26 +1,32 @@
-import 'dart:convert';
 import 'dart:developer';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:mychats/services/api_service.dart';
 import 'package:mychats/services/auth_service.dart';
-import 'package:mychats/shared/constants.dart';
+import 'package:mychats/shared/endpoints.dart';
 
 class ChatService{
   Future<List> getActiveChats()async{
-    final String firebaseId = AuthService().firebaseId!;
+    try{
+      final String firebaseId = AuthService().firebaseId!;
 
-    http.Response res = await http.get(
-      Uri.parse('${uri}user/active_rooms/$firebaseId'),
-      headers: {'Content-Type' : 'application/json'}
-    );
+      Response res = await ApiService().getRequest(
+        path: '${Endpoints.baseUrl}/user/active_rooms/$firebaseId'
+      );
 
-    if(res.statusCode == 200){
-      log('Received active rooms');
-      Map m = jsonDecode(res.body);
-      return m['activeRooms'];
-    }
-    else{
-      log(res.body);
-      return [];
+      if(res.statusCode == 200){
+        log('Received active rooms');
+        Map m = res.data;
+        
+        final chats = m['activeRooms'];
+        chats.sort((a, b) => -1*(a['lastActive'].toString()).compareTo(b['lastActive'].toString()));
+
+        return chats;
+      }
+      else{
+        throw Exception(res.statusMessage);
+      }
+    }catch(e){
+      throw Exception(e.toString());
     }
   }
 }

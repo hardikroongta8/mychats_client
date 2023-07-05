@@ -14,43 +14,22 @@ class ContactScreen extends StatefulWidget {
 }
 
 class _ContactScreenState extends State<ContactScreen> {
-  List contactInfo = [];
-
-  bool isLoading = true;
-
-  void getAndUpdateContacts()async{
-    if(mounted){
-      final contactList = await MyContactService().fetchContacts();
-      if(mounted){
-        setState((){
-          contactInfo = contactList;
-          isLoading = false;
-        });
-      }
-      MyContactService().updateContactInfoOnDB();
-    }
-  }
-
-  void getContactsFromDB()async{
-    final contactList = await MyContactService().getContactsFromDB();
-    if(mounted){
-      setState(() {
-        contactInfo = contactList;
-        isLoading = false;
-      });
-    }
-  }
+  late Future<List> contactInfo;
 
   @override
   void initState() {
     super.initState();
-    getContactsFromDB();
-    getAndUpdateContacts();
+    contactInfo = MyContactService().getContactsFromDB();
+    if(mounted){
+      setState(() {
+        contactInfo = MyContactService().fetchContacts();
+      });
+    }
   }
   
   @override
   Widget build(BuildContext context) {
-    return isLoading ? const Loading() : Scaffold(
+    return Scaffold(
       appBar: AppBar(
         elevation: 1,
         title: const Text('Select Contact'),
@@ -63,29 +42,41 @@ class _ContactScreenState extends State<ContactScreen> {
           )
         ],
       ),
-      body: ListView.builder(
-        itemBuilder: (context, index) => ListTile(
-          onTap: (){
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PersonalChat(
-                  phoneNumber: contactInfo[index]['phoneNumber'],
-                  displayName: contactInfo[index]['displayName'],
-                  session: widget.session,
+      body: FutureBuilder(
+        future: contactInfo,
+        builder: (context, snapshot){
+          if(!snapshot.hasData){
+            return const Loading();
+          }
+          else if(snapshot.hasError){
+            return Center(child: Text('Error: ${snapshot.data}'),);
+          }
+          MyContactService().updateContactInfoOnDB(snapshot.data!);
+          return ListView.builder(
+            itemBuilder: (context, index) => ListTile(
+              onTap: (){
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PersonalChat(
+                      phoneNumber: snapshot.data![index]['phoneNumber'],
+                      displayName: snapshot.data![index]['displayName'],
+                      session: widget.session,
 
-                )
-              )
-            );
-          },
-          leading: const CircleAvatar(
-            radius: 30,
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          title: Text(contactInfo[index]['displayName']),
-          subtitle: Text(contactInfo[index]['phoneNumber']),
-        ),
-        itemCount: contactInfo.length,
+                    )
+                  )
+                );
+              },
+              leading: const CircleAvatar(
+                radius: 30,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              title: Text(snapshot.data![index]['displayName']),
+              subtitle: Text(snapshot.data![index]['phoneNumber']),
+            ),
+            itemCount: snapshot.data!.length,
+          );
+        },
       ),
     );
   }

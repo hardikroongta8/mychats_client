@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:contacts_service/contacts_service.dart';
+import 'package:dio/dio.dart';
+import 'package:mychats/services/api_service.dart';
 import 'package:mychats/services/auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:mychats/shared/constants.dart';
-import 'package:http/http.dart' as http;
+import 'package:mychats/shared/endpoints.dart';
 import 'package:mychats/shared/globals.dart';
 
 class MyContactService{
@@ -37,7 +38,7 @@ class MyContactService{
             contactInfo.add({
               'phoneNumber': phoneNumber,
               'displayName': contacts[i].displayName,
-              'roomId': roomId(phoneNumber)
+              'roomId': getRoomId(phoneNumber)
             });
           }
         }
@@ -47,41 +48,48 @@ class MyContactService{
     return contactInfo;
   }
 
-  Future updateContactInfoOnDB()async{
-    List contactInfo = await fetchContacts();
+  Future updateContactInfoOnDB(List contactInfo)async{
+    try{
+      String firebaseId = AuthService().firebaseId!;
 
-    String firebaseId = AuthService().firebaseId!;
+      Response res = await ApiService().putRequest(
+        path: '${Endpoints.baseUrl}/user/update_contact_info',
+        data: jsonEncode({
+          'contactInfo': contactInfo,
+          'firebaseId': firebaseId
+        }),
+      );
 
-    http.Response res = await http.put(
-      Uri.parse('${uri}user/update_contact_info'),
-      body: jsonEncode({
-        'contactInfo': contactInfo,
-        'firebaseId': firebaseId
-      }),
-      headers: {
-        'Content-Type': 'application/json'
+      if(res.statusCode == 200){
+        log(res.data);
       }
-    );
-
-    if(res.statusCode == 200){
-      log(res.body);
-    }
-    else{
-      log('Error updating contact info on database');
-      log(res.body);
+      else{
+        log('Error updating contact info on database');
+        throw Exception(res.statusMessage);
+      }
+    }catch(e){
+      throw Exception(e.toString());
     }
   }
 
   Future<List> getContactsFromDB()async{
-    final String firebaseId = AuthService().firebaseId!;
+    try {
+      final String firebaseId = AuthService().firebaseId!;
 
-    http.Response res = await http.get(
-      Uri.parse('${uri}user/get_contact_info/$firebaseId'),
-      headers: {'Content-Type': 'application/json'}
-    );
+      Response res = await ApiService().getRequest(
+        path: '${Endpoints.baseUrl}/user/get_contact_info/$firebaseId'
+      );
 
-    final contactInfo = jsonDecode(res.body)['contactInfo'];
-
-    return contactInfo;
+      if(res.statusCode == 200){
+        final contactInfo = res.data['contactInfo'];
+        return contactInfo;
+      }
+      else {
+        throw Exception(res.statusMessage);
+      }      
+    }catch(e){
+      throw Exception(e.toString());
+    }
   }
+
 }

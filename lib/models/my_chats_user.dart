@@ -1,10 +1,12 @@
+import 'dart:io';
+
 class MyChatsUser{
   String firebaseId;
   String phoneNumber;
   String fullName;
   String about;
   List<Map> contactInfo;
-  String? profilePicUrl;
+  String? profilePicData;
   List<String>? groups;
 
   MyChatsUser({
@@ -12,7 +14,7 @@ class MyChatsUser{
     required this.phoneNumber,
     required this.fullName,
     required this.contactInfo,
-    this.profilePicUrl,
+    this.profilePicData,
     this.groups,
     required this.about
   });

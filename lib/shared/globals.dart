@@ -1,6 +1,6 @@
 import 'package:mychats/services/auth_service.dart';
 
-String roomId(String theirPhoneNumber){
+String getRoomId(String theirPhoneNumber){
   String myPhoneNumber = AuthService().phoneNumber!;
 
   String roomId;

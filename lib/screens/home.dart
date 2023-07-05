@@ -5,6 +5,7 @@ import 'package:mychats/screens/contact_screen.dart';
 import 'package:mychats/services/chat_service.dart';
 import 'package:mychats/services/session_service.dart';
 import 'package:intl/intl.dart';
+import 'package:mychats/shared/loading.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -18,19 +19,10 @@ class Home extends StatefulWidget {
 // MAYBE EVERYONE JOINS A PRIVATE ROOM (ROOM ID = MY PHONE NUMBER)
 // AND WHENEVER SOMEBODY SENDS A MESSAGE TO ME, SOCKET EMITS A MESSAGE TO HIS AND MINE PRIVATE ROOMS
 class _HomeState extends State<Home> with WidgetsBindingObserver {
-  List activeRooms= [];
+  late Future<List> activeRooms;
 
   final SessionService sessionService = SessionService();
 
-  void getActiveChats()async{
-    final chats = await ChatService().getActiveChats();
-    if(mounted){
-      setState(() {
-        chats.sort((a, b) => -1*(a['lastActive'].toString()).compareTo(b['lastActive'].toString()));
-        activeRooms = chats;
-      });
-    }
-  }
 
   @override
   void initState() {
@@ -39,9 +31,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     sessionService.joinMyRoom();
     sessionService.socket.on('refreshView', (data){
       log('refreshView');
-      getActiveChats();
+      if(mounted){
+        setState(() {
+          activeRooms = ChatService().getActiveChats();
+        });
+      }
     });
-    getActiveChats();
+    if(mounted){
+      setState(() {
+        activeRooms = ChatService().getActiveChats();
+      });
+    }
   }
 
   @override
@@ -51,7 +51,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if(state == AppLifecycleState.resumed){
       log('resume');
       sessionService.joinMyRoom();
-      getActiveChats();
+      setState(() {
+        activeRooms = ChatService().getActiveChats();
+      });
     }
   }
 
@@ -64,66 +66,87 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context){
-    sessionService.socket.on('refreshView', (data){
-      log('refreshView');
-      getActiveChats();
-    });
+
     return Scaffold(
       appBar: AppBar(
         elevation: 1,
         title: const Text('MyChats'),
       ),
-      body: ListView.builder(
-        itemBuilder: (context, index) => ListTile(
-          onTap: (){
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PersonalChat(
-                  phoneNumber: activeRooms[index]['phoneNumber'],
-                  displayName: activeRooms[index]['displayName'],
-                  session: sessionService,
-                )
-              )
-            ).then((value){getActiveChats();});
-          },
-          splashColor: Colors.transparent,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          leading: const CircleAvatar(
-            radius: 30,
-          ),
-          isThreeLine: false,
-          title: Text(activeRooms[index]['displayName']),
-          subtitle: Text(
-            activeRooms[index]['lastMessage']['body'],
-            softWrap: false,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            style: const TextStyle(
-              fontWeight: FontWeight.w300,
-              color: Colors.white60,
-            ),
-          ),
-          titleAlignment: ListTileTitleAlignment.titleHeight,
-          trailing: Column(
-            children: [
-              Text(
-                DateFormat("HH:mm").format(DateTime.parse(activeRooms[index]['lastActive'])),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.white60,
-                  fontWeight: FontWeight.w300
+      body: FutureBuilder(
+        future: activeRooms,
+        builder: (context, snapshot) {
+          if(!snapshot.hasData){
+            return const Loading();
+          }
+          else{
+            return ListView.builder(
+              itemBuilder: (context, index) => ListTile(
+                onTap: (){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => PersonalChat(
+                        phoneNumber: snapshot.data![index]['phoneNumber'],
+                        displayName: snapshot.data![index]['displayName'],
+                        session: sessionService,
+                      )
+                    )
+                  ).then((value){
+                    if(mounted){
+                      setState(() {
+                        activeRooms = ChatService().getActiveChats();
+                      });
+                    }
+                  });
+                },
+                splashColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                leading: const CircleAvatar(
+                  radius: 30,
+                ),
+                isThreeLine: false,
+                title: Text(snapshot.data![index]['displayName']),
+                subtitle: Text(
+                  snapshot.data![index]['lastMessage']['body'],
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w300,
+                    color: Colors.white60,
+                  ),
+                ),
+                titleAlignment: ListTileTitleAlignment.titleHeight,
+                trailing: Column(
+                  children: [
+                    Text(
+                      DateFormat("HH:mm").format(DateTime.parse(snapshot.data![index]['lastActive'])),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white60,
+                        fontWeight: FontWeight.w300
+                      ),
+                    ),
+                    const SizedBox(height: 8,),
+                    snapshot.data![index]['count'] == 0 || snapshot.data![index]['count'] == null 
+                    ? const SizedBox() 
+                    : CircleAvatar(
+                      radius: 10,
+                      child: Text(
+                        snapshot.data![index]['count'].toString(), 
+                        style: const TextStyle(
+                          fontSize: 10, 
+                          fontWeight: FontWeight.w300
+                        ),
+                      ),
+                    )
+                  ],
                 ),
               ),
-              const SizedBox(height: 8,),
-              activeRooms[index]['count'] == 0 || activeRooms[index]['count'] == null ? const SizedBox() : CircleAvatar(
-                radius: 10,
-                child: Text(activeRooms[index]['count'].toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w300),),
-              )
-            ],
-          ),
-        ),
-        itemCount: activeRooms.length,
+              itemCount: snapshot.data!.length,
+            );
+          }
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: (){

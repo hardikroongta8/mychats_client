@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import 'package:mychats/services/auth_service.dart';
+import 'package:mychats/models/message.dart';
 import 'package:mychats/services/mongodb_service.dart';
 import 'package:mychats/services/session_service.dart';
 import 'package:mychats/shared/globals.dart';
-import 'dart:ui' as ui;
+import 'package:mychats/shared/loading.dart';
+
+
+import 'package:mychats/widgets/message_block.dart';
 
 class PersonalChat extends StatefulWidget {
   final String phoneNumber;
@@ -21,15 +23,10 @@ class PersonalChat extends StatefulWidget {
 class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
-  final msgStyle = const TextStyle(
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: FontWeight.w300
-  );
 
   late Timer periodicTimer;
 
-  List<Map> allMessages = [];
+  late Future<List<Map<String, String>>> allMessages;
   List<Map> socketMessages = [];
 
   List<Widget> messageBlocks = [];
@@ -37,23 +34,22 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   bool isOnline = false;
   String status = 'Online';
 
-  Size textSize(String text, TextStyle style){
-    final TextPainter textPainter = TextPainter(
-      text: TextSpan(text: text, style: style), 
-      maxLines: 1,
 
-      textDirection: ui.TextDirection.ltr
-    )
-    ..layout(minWidth: 0, maxWidth: double.infinity);
-    
-    return textPainter.size;
-  }
+  List<Widget> getMessageBlockList(List<Map<String, String>> messageList){
+    messageBlocks = [];
+    for(var message in messageList){
+      messageBlocks.add(
+        MessageBlock(message: Message.fromJson(message))
+      );
+    }
+    return messageBlocks;
+  }  
 
   void saveMessagesToDB(bool isOffline)async{
     final msgs = socketMessages;
 
     widget.session.socket.emit('dataSavedOnCloud', {
-      'roomId': roomId(widget.phoneNumber)
+      'roomId': getRoomId(widget.phoneNumber)
     });
 
     // TRY EMITTING SOCKET SIGNAL FIRST
@@ -65,7 +61,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
       count = msgs.length;
     }
     String res = await MongoDBService().saveMessages({
-      'roomId': roomId(widget.phoneNumber),
+      'roomId': getRoomId(widget.phoneNumber),
       'messageList': msgs,
       'unreadMessages': {
         'count': count,
@@ -74,36 +70,19 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     });
 
     widget.session.socket.emit('refreshView', {
-      'roomId': roomId(widget.phoneNumber)
+      'roomId': getRoomId(widget.phoneNumber)
     });
+
+    log('emitting refresh view');
 
     log(res);
   }
   
-  void getMessages()async{
-    List msgs = await MongoDBService().getMessages(roomId(widget.phoneNumber));
-    List<Map> m = [];
-    for(int i = 0; i < msgs.length; i++){
-      m.add({
-        'body': msgs[i]['body'] as String,
-        'sentBy': msgs[i]['sentBy'] as String,
-        'sendingTime': msgs[i]['sendingTime'] as String,
-        'roomId': roomId(widget.phoneNumber)
-      });
-    }
-
-    if(mounted){
-      setState(() {
-        allMessages = m;
-      });
-    }
-  }
 
   void checkOnline(){
     widget.session.socket.on(
       'clientsInRoom',
       (data){
-        log('check for ${widget.displayName}');
         log(data.toString());
         
         if(data['clientList'] == 2){
@@ -111,7 +90,6 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
           periodicTimer = Timer.periodic(
             const Duration(seconds: 10),
             (timer){
-              log('tick ${widget.displayName}');
               if(socketMessages.isNotEmpty){
                 saveMessagesToDB(false);
               }
@@ -129,7 +107,6 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
           periodicTimer = Timer.periodic(
             const Duration(seconds: 1), 
             (timer){
-              log('tick ${widget.displayName}');
               if(socketMessages.isNotEmpty){
                 saveMessagesToDB(true);
               }
@@ -161,14 +138,15 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.session.joinPersonalRoom(widget.phoneNumber);
-    getMessages();
+    
+    allMessages = MongoDBService().getMessages(getRoomId(widget.phoneNumber));
 
     widget.session.socket.on('sentMessage',
       (data){
         log('Message received');
         if(mounted){
           setState(() {
-            allMessages.add(data);
+            messageBlocks.add(MessageBlock(message: Message.fromJson(data)));
             socketMessages.add(data);
           });
         }
@@ -182,7 +160,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     );
 
     widget.session.socket.emit('findClientsInRoom', {
-      'roomId': roomId(widget.phoneNumber)
+      'roomId': getRoomId(widget.phoneNumber)
     });
 
     checkOnline();
@@ -190,7 +168,6 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     periodicTimer = Timer.periodic(
     const Duration(seconds: 1),
     (timer){
-      log('tick ${widget.displayName}');
       if(socketMessages.isNotEmpty){
         saveMessagesToDB(true);
       }
@@ -199,10 +176,10 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   }
 
   @override
-  void dispose() {    
+  void dispose() {
     super.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    //periodicTimer.cancel();
+    
     if(socketMessages.isNotEmpty){
       saveMessagesToDB(!isOnline);
     }
@@ -212,64 +189,15 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     periodicTimer.cancel();
     widget.session.leaveRoom(widget.phoneNumber);
     widget.session.socket.emit('findClientsInRoom', {
-      'roomId': roomId(widget.phoneNumber)
+      'roomId': getRoomId(widget.phoneNumber)
     });
-    widget.session.socket.clearListeners();
+    widget.session.socket.off('clientsInRoom');
+    widget.session.socket.off('sentMessage');
+    widget.session.socket.off('dataSaved');
   }
 
   @override
   Widget build(BuildContext context) {
-    messageBlocks = [];
-    for(var message in allMessages){
-      messageBlocks.add(
-        Align(
-          alignment: (message['sentBy'] == AuthService().phoneNumber)
-            ? Alignment.centerRight 
-            : Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 3, 10, 0),
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.7,
-                minWidth: MediaQuery.of(context).size.width * 0.2
-              ),
-              width: textSize(message['body'], msgStyle).width  + 60,
-              decoration: BoxDecoration(
-                color: message['sentBy'] == AuthService().phoneNumber! 
-                  ? Colors.red[900]
-                  : const Color.fromRGBO(99, 66, 66, 1),
-                borderRadius: BorderRadius.circular(12)
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: Stack(
-                  children: [
-                    Text(
-                      message['body'],
-                      style: msgStyle,
-                      softWrap: true,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Text(
-                        DateFormat("HH:mm").format(DateTime.parse(message['sendingTime'])),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                          fontWeight: FontWeight.w300
-                        ),
-                      ),
-                    ),
-                  ]
-                ),
-              )
-            ),
-          ),
-        )
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         elevation: 1,
@@ -307,24 +235,36 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
         child: Column(
           children: [
             Expanded(
-              child: allMessages.length <= 20
-              ? Container(
-                alignment: Alignment.topCenter,
-                child: SingleChildScrollView(
-                  reverse: true,
-                  child: Column(
-                    children: messageBlocks,
-                  ),
-                ),
-              )
-              : ListView.builder(
-                reverse: true,
-                controller: _scrollController,
-                itemBuilder: (context, i){
-                  int index = allMessages.length - i - 1;
-                  return messageBlocks[index];
+              child: FutureBuilder(
+                future: allMessages,
+                builder: (context, snapshot) {
+                  if(!snapshot.hasData){
+                    return const Loading();
+                  }
+                  else if(snapshot.hasError){
+                    return Center(child: Text('Error: ${snapshot.data.toString()}'));
+                  }
+                  if(messageBlocks.isEmpty)getMessageBlockList(snapshot.data!);
+                  return snapshot.data!.length <= 20
+                  ? Container(
+                    alignment: Alignment.topCenter,
+                    child: SingleChildScrollView(
+                      reverse: true,
+                      child: Column(
+                        children: messageBlocks,
+                      ),
+                    ),
+                  )
+                  : ListView.builder(
+                    reverse: true,
+                    controller: _scrollController,
+                    itemBuilder: (context, i){
+                      int index = messageBlocks.length - i - 1;
+                      return messageBlocks[index];
+                    },
+                    itemCount: messageBlocks.length,
+                  );
                 },
-                itemCount: allMessages.length,
               ),
             ),
             SizedBox(
