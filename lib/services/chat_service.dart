@@ -5,13 +5,17 @@ import 'package:mychats/services/auth_service.dart';
 import 'package:mychats/shared/endpoints.dart';
 
 class ChatService{
+  final _dio = ApiService().dio;
+
   Future<List> getActiveChats()async{
     try{
       final String firebaseId = AuthService().firebaseId!;
 
-      Response res = await ApiService().getRequest(
-        path: '${Endpoints.baseUrl}/user/active_rooms/$firebaseId'
+      Response res = await _dio.get(
+        '${Endpoints.baseUrl}/user/active_rooms/$firebaseId'
       );
+
+      log('response received');
 
       if(res.statusCode == 200){
         log('Received active rooms');
@@ -23,10 +27,10 @@ class ChatService{
         return chats;
       }
       else{
-        throw Exception(res.statusMessage);
+        return Future.error(res.statusMessage.toString());
       }
     }catch(e){
-      throw Exception(e.toString());
+      return Future.error(e.toString());
     }
   }
 }

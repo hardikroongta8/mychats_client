@@ -6,10 +6,12 @@ import 'package:mychats/services/auth_service.dart';
 import 'package:mychats/shared/endpoints.dart';
 
 class MongoDBService{
-  Future<String> createUser(MyChatsUser myUser)async{
+  final _dio = ApiService().dio;
+
+  Future<Map> signinUser(MyChatsUser myUser)async{
     try {
-      Response res = await ApiService().putRequest(
-        path: '${Endpoints.baseUrl}/user/create',
+      Response res = await _dio.put(
+        '${Endpoints.baseUrl}/user/signin',
         data: jsonEncode({
           'fullName': myUser.fullName,
           'firebaseId': myUser.firebaseId,
@@ -20,34 +22,39 @@ class MongoDBService{
         })
       );
       
-      if(res.statusCode == 200)return res.data;
+      if(res.statusCode == 200){
+        return {
+          'accessToken': res.data['accessToken'].toString(),
+          'refreshToken': res.data['refreshToken'].toString()
+        };
+      }
 
-      throw Exception(res.statusMessage);
+      return Future.error(res.statusMessage.toString());
     }catch(e){
-      throw Exception(e.toString());
+      return Future.error(e.toString());
     }
   }
 
   Future<String> saveMessages(Map roomData)async{
     try {
-      Response res = await ApiService().putRequest(
-        path: '${Endpoints.baseUrl}/message/save_messages',
+      Response res = await _dio.put(
+        '${Endpoints.baseUrl}/message/save_messages',
         data: jsonEncode(roomData)
       );
 
       if(res.statusCode == 200)return res.data;
 
-      throw Exception(res.statusMessage);
+      return Future.error(res.statusMessage.toString());
     }catch(e){
-      throw Exception(e.toString());
+      return Future.error(e.toString());
     }
   }
 
   Future<List<Map<String, String>>> getMessages(String roomId)async{
     try {
       String myPhoneNumber = AuthService().phoneNumber!;
-      Response res = await ApiService().getRequest(
-        path: '${Endpoints.baseUrl}/message/of/$roomId/$myPhoneNumber'
+      Response res = await _dio.get(
+        '${Endpoints.baseUrl}/message/of/$roomId/$myPhoneNumber'
       );
 
       if(res.statusCode == 200){
@@ -65,10 +72,10 @@ class MongoDBService{
         return m;
       }
       else{
-        throw Exception(res.statusMessage);
+        return Future.error(res.statusMessage.toString());
       }
     }catch(e){
-      throw Exception(e.toString());
+      return Future.error(e.toString());
     }
   }
 }

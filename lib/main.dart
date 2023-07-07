@@ -14,6 +14,8 @@ void main()async{
   runApp(const MyApp());
 }
 
+final GlobalKey<ScaffoldMessengerState> scaffoldMessangerKey = GlobalKey();
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

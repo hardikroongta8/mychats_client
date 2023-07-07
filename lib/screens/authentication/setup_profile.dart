@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -115,6 +116,7 @@ class _SetupProfileState extends State<SetupProfile> {
                   width: 0.8*screenWidth,
                   child: TextFormField(
                     controller: fullNameController,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       hintText: 'Full Name',
                       fillColor: Colors.white10,
@@ -161,9 +163,11 @@ class _SetupProfileState extends State<SetupProfile> {
                       profilePicData: imageData == null ? null : base64Encode(imageData)
                     );
 
-                    await MongoDBService().createUser(myUser);
+                    Map tokens = await MongoDBService().signinUser(myUser);
 
-                    await SharedPrefs().setIsProfileCreated(true);
+                    await SharedPrefs.setIsProfileCreated(true);
+                    await SharedPrefs.setAccessToken(tokens['accessToken']);
+                    await SharedPrefs.setRefreshToken(tokens['refreshToken']);                    
 
                     boolProvider.setValue(true);
                   },

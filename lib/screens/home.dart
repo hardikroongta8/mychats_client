@@ -1,10 +1,15 @@
+import 'dart:convert';
 import 'dart:developer';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mychats/screens/chats/personal_chat.dart';
 import 'package:mychats/screens/contact_screen.dart';
+import 'package:mychats/services/api_service.dart';
 import 'package:mychats/services/chat_service.dart';
 import 'package:mychats/services/session_service.dart';
 import 'package:intl/intl.dart';
+import 'package:mychats/services/shared_prefs.dart';
+import 'package:mychats/shared/endpoints.dart';
 import 'package:mychats/shared/loading.dart';
 
 class Home extends StatefulWidget {
@@ -75,76 +80,87 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       body: FutureBuilder(
         future: activeRooms,
         builder: (context, snapshot) {
-          if(!snapshot.hasData){
-            return const Loading();
-          }
-          else{
-            return ListView.builder(
-              itemBuilder: (context, index) => ListTile(
-                onTap: (){
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PersonalChat(
-                        phoneNumber: snapshot.data![index]['phoneNumber'],
-                        displayName: snapshot.data![index]['displayName'],
-                        session: sessionService,
+          switch(snapshot.connectionState){
+            case ConnectionState.none: return const Text('None');
+            case ConnectionState.waiting: return const Loading();
+            case ConnectionState.active: return const Text('active');
+            case ConnectionState.done: 
+            if(snapshot.hasError){
+              return Center(
+                child: Text(
+                  '${snapshot.error}',
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
+            else{
+              return ListView.builder(
+                itemBuilder: (context, index) => ListTile(
+                  onTap: (){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PersonalChat(
+                          phoneNumber: snapshot.data![index]['phoneNumber'],
+                          displayName: snapshot.data![index]['displayName'],
+                          session: sessionService,
+                        )
                       )
-                    )
-                  ).then((value){
-                    if(mounted){
-                      setState(() {
-                        activeRooms = ChatService().getActiveChats();
-                      });
-                    }
-                  });
-                },
-                splashColor: Colors.transparent,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                leading: const CircleAvatar(
-                  radius: 30,
-                ),
-                isThreeLine: false,
-                title: Text(snapshot.data![index]['displayName']),
-                subtitle: Text(
-                  snapshot.data![index]['lastMessage']['body'],
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w300,
-                    color: Colors.white60,
+                    ).then((value){
+                      if(mounted){
+                        setState(() {
+                          activeRooms = ChatService().getActiveChats();
+                        });
+                      }
+                    });
+                  },
+                  splashColor: Colors.transparent,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  leading: const CircleAvatar(
+                    radius: 30,
                   ),
-                ),
-                titleAlignment: ListTileTitleAlignment.titleHeight,
-                trailing: Column(
-                  children: [
-                    Text(
-                      DateFormat("HH:mm").format(DateTime.parse(snapshot.data![index]['lastActive'])),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white60,
-                        fontWeight: FontWeight.w300
-                      ),
+                  isThreeLine: false,
+                  title: Text(snapshot.data![index]['displayName']),
+                  subtitle: Text(
+                    snapshot.data![index]['lastMessage']['body'],
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w300,
+                      color: Colors.white60,
                     ),
-                    const SizedBox(height: 8,),
-                    snapshot.data![index]['count'] == 0 || snapshot.data![index]['count'] == null 
-                    ? const SizedBox() 
-                    : CircleAvatar(
-                      radius: 10,
-                      child: Text(
-                        snapshot.data![index]['count'].toString(), 
+                  ),
+                  titleAlignment: ListTileTitleAlignment.titleHeight,
+                  trailing: Column(
+                    children: [
+                      Text(
+                        DateFormat("HH:mm").format(DateTime.parse(snapshot.data![index]['lastActive'])),
                         style: const TextStyle(
-                          fontSize: 10, 
+                          fontSize: 12,
+                          color: Colors.white60,
                           fontWeight: FontWeight.w300
                         ),
                       ),
-                    )
-                  ],
+                      const SizedBox(height: 8,),
+                      snapshot.data![index]['count'] == 0 || snapshot.data![index]['count'] == null 
+                      ? const SizedBox() 
+                      : CircleAvatar(
+                        radius: 10,
+                        child: Text(
+                          snapshot.data![index]['count'].toString(), 
+                          style: const TextStyle(
+                            fontSize: 10, 
+                            fontWeight: FontWeight.w300
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
                 ),
-              ),
-              itemCount: snapshot.data!.length,
-            );
+                itemCount: snapshot.data!.length,
+              );
+            }
           }
         },
       ),

@@ -238,32 +238,36 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
               child: FutureBuilder(
                 future: allMessages,
                 builder: (context, snapshot) {
-                  if(!snapshot.hasData){
-                    return const Loading();
+                  switch(snapshot.connectionState){
+                    case ConnectionState.none: return const Text('None');
+                    case ConnectionState.waiting: return const Loading();
+                    case ConnectionState.active: return const Text('active');
+                    case ConnectionState.done:
+                    if(snapshot.hasError){
+                      return Center(child: Text('${snapshot.error}'));
+                    }else{
+                      if(messageBlocks.isEmpty)getMessageBlockList(snapshot.data!);
+                      return snapshot.data!.length <= 20
+                      ? Container(
+                        alignment: Alignment.topCenter,
+                        child: SingleChildScrollView(
+                          reverse: true,
+                          child: Column(
+                            children: messageBlocks,
+                          ),
+                        ),
+                      )
+                      : ListView.builder(
+                        reverse: true,
+                        controller: _scrollController,
+                        itemBuilder: (context, i){
+                          int index = messageBlocks.length - i - 1;
+                          return messageBlocks[index];
+                        },
+                        itemCount: messageBlocks.length,
+                      );
+                    }
                   }
-                  else if(snapshot.hasError){
-                    return Center(child: Text('Error: ${snapshot.data.toString()}'));
-                  }
-                  if(messageBlocks.isEmpty)getMessageBlockList(snapshot.data!);
-                  return snapshot.data!.length <= 20
-                  ? Container(
-                    alignment: Alignment.topCenter,
-                    child: SingleChildScrollView(
-                      reverse: true,
-                      child: Column(
-                        children: messageBlocks,
-                      ),
-                    ),
-                  )
-                  : ListView.builder(
-                    reverse: true,
-                    controller: _scrollController,
-                    itemBuilder: (context, i){
-                      int index = messageBlocks.length - i - 1;
-                      return messageBlocks[index];
-                    },
-                    itemCount: messageBlocks.length,
-                  );
                 },
               ),
             ),

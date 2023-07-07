@@ -1,11 +1,12 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:developer';
+
 import 'package:dio/dio.dart';
-import 'package:mychats/interceptors/request_retrier.dart';
-import 'package:mychats/interceptors/retry_interceptor.dart';
+import 'package:mychats/services/shared_prefs.dart';
+import 'package:mychats/shared/auth_functions.dart';
 import 'package:mychats/shared/endpoints.dart';
+import 'package:mychats/shared/globals.dart';
 
 
-// TODO: HANDLE INFINITE LOADING WHEN NO INTERNET
 class ApiService{
   final Dio dio = Dio(
     BaseOptions(
@@ -18,20 +19,41 @@ class ApiService{
 
   ApiService(){
     dio.interceptors.add(
-      RetryOnConnectionChangeInterceptor(
-        requestRetrier: RequestRetrier(
-          connectivity: Connectivity(),
-          dio: dio
-        ),
-      ),
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          log('INSIDE REQUEST');
+          String accessToken = await SharedPrefs.getAccessToken() ?? ' ';
+          options.headers['authorization'] = 'Bearer $accessToken';
+          handler.next(options);
+        },
+        onError: (e, handler) async {
+          log('INSIDE ERROR');
+          Response? res = e.response;
+          if(res != null && (res.statusCode == 403 || res.statusCode == 401)){
+            log('INSIDE 401 or 403');
+            String? accessToken = await SharedPrefs.getAccessToken();
+            if(accessToken == null){
+              showSnackbar('Login to continue!');
+            }
+            else{
+              bool couldRegenerate = await AuthFunctions().regenerateAccessToken();
+              if(couldRegenerate){
+                return handler.resolve(await AuthFunctions().retryRequest(res));
+              }else{
+                showSnackbar('Your session has expired! Login again.');
+              }
+            }
+          }
+          else if(res != null && (res.statusCode == 400)){
+            log('INSIDE OTHER');
+            log(res.toString());
+            showSnackbar(res.data['message']);
+          }
+          else{
+            return handler.next(e);
+          }
+        },
+      )
     );
-  }
-
-  Future<Response> getRequest({required String path}){
-    return dio.get(path);
-  }
-
-  Future<Response> putRequest({required String path, required String data}){
-    return dio.put(path, data: data);
   }
 }

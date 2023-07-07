@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:mychats/main.dart';
 import 'package:mychats/services/auth_service.dart';
 
 String getRoomId(String theirPhoneNumber){
@@ -13,4 +15,10 @@ String getRoomId(String theirPhoneNumber){
   }
 
   return roomId;
+}
+
+void showSnackbar(String message){
+  scaffoldMessangerKey.currentState?.showSnackBar(
+    SnackBar(content: Text(message))
+  );
 }

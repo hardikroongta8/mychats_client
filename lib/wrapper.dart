@@ -21,7 +21,7 @@ class _WrapperState extends State<Wrapper> {
     final boolProvider = Provider.of<BoolProvider>(context);
 
     void setBoolValue()async{
-      bool val = await SharedPrefs().isProfileCreated();
+      bool val = await SharedPrefs.isProfileCreated();
 
       if(boolProvider.value != val){
         boolProvider.setValue(val);

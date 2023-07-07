@@ -9,6 +9,8 @@ import 'package:mychats/shared/endpoints.dart';
 import 'package:mychats/shared/globals.dart';
 
 class MyContactService{
+  final Dio _dio = ApiService().dio;
+
   Future<List<Map>> fetchContacts()async{
     if(await Permission.contacts.isDenied){
       await Permission.contacts.request();
@@ -52,8 +54,8 @@ class MyContactService{
     try{
       String firebaseId = AuthService().firebaseId!;
 
-      Response res = await ApiService().putRequest(
-        path: '${Endpoints.baseUrl}/user/update_contact_info',
+      Response res = await _dio.put(
+        '${Endpoints.baseUrl}/user/update_contact_info',
         data: jsonEncode({
           'contactInfo': contactInfo,
           'firebaseId': firebaseId
@@ -65,10 +67,10 @@ class MyContactService{
       }
       else{
         log('Error updating contact info on database');
-        throw Exception(res.statusMessage);
+        return Future.error(res.statusMessage.toString());
       }
     }catch(e){
-      throw Exception(e.toString());
+      return Future.error(e.toString());
     }
   }
 
@@ -76,8 +78,8 @@ class MyContactService{
     try {
       final String firebaseId = AuthService().firebaseId!;
 
-      Response res = await ApiService().getRequest(
-        path: '${Endpoints.baseUrl}/user/get_contact_info/$firebaseId'
+      Response res = await _dio.get(
+        '${Endpoints.baseUrl}/user/get_contact_info/$firebaseId'
       );
 
       if(res.statusCode == 200){
@@ -85,10 +87,10 @@ class MyContactService{
         return contactInfo;
       }
       else {
-        throw Exception(res.statusMessage);
+        return Future.error(res.statusMessage.toString());
       }      
     }catch(e){
-      throw Exception(e.toString());
+      return Future.error(e.toString());
     }
   }
 

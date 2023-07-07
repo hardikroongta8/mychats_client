@@ -18,6 +18,6 @@ class AuthService{
 
   Future<void> signOut()async{
     await authService.signOut();
-    await SharedPrefs().deleteIsProfileCreated();
+    await SharedPrefs.deleteIsProfileCreated();
   }
 }
