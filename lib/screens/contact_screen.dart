@@ -1,9 +1,11 @@
 import 'package:mychats/screens/chats/personal_chat.dart';
 import 'package:mychats/services/auth_service.dart';
+import 'package:mychats/services/chat_service.dart';
 import 'package:mychats/services/my_contact_service.dart';
 import 'package:mychats/services/session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:mychats/shared/loading.dart';
+import 'package:mychats/widgets/profile_pic.dart';
 
 class ContactScreen extends StatefulWidget {
   final SessionService session;
@@ -37,6 +39,7 @@ class _ContactScreenState extends State<ContactScreen> {
           IconButton(
             onPressed: (){
               AuthService().signOut();
+              Navigator.pop(context);
             }, 
             icon: const Icon(Icons.logout_rounded)
           )
@@ -67,12 +70,24 @@ class _ContactScreenState extends State<ContactScreen> {
                   )
                 );
               },
-              leading: const CircleAvatar(
+              leading: ProfilePic(
+                phoneNumber: snapshot.data![index]['phoneNumber'],
                 radius: 30,
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               title: Text(snapshot.data![index]['displayName']),
-              subtitle: Text(snapshot.data![index]['phoneNumber']),
+              subtitle: FutureBuilder(
+                future: ChatService().getUserAbout(snapshot.data![index]['phoneNumber']),
+                builder: (context, snapshot) {
+                  if(!snapshot.hasData){
+                    return const Text('');
+                  }else if(snapshot.hasError){
+                    return Text(snapshot.error.toString());
+                  }else{
+                    return Text(snapshot.data ?? '');
+                  }
+                },
+              ),
             ),
             itemCount: snapshot.data!.length,
           );

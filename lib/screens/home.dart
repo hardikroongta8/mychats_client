@@ -1,16 +1,12 @@
-import 'dart:convert';
 import 'dart:developer';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mychats/screens/chats/personal_chat.dart';
 import 'package:mychats/screens/contact_screen.dart';
-import 'package:mychats/services/api_service.dart';
 import 'package:mychats/services/chat_service.dart';
 import 'package:mychats/services/session_service.dart';
 import 'package:intl/intl.dart';
-import 'package:mychats/services/shared_prefs.dart';
-import 'package:mychats/shared/endpoints.dart';
 import 'package:mychats/shared/loading.dart';
+import 'package:mychats/widgets/profile_pic.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -64,22 +60,30 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    sessionService.leaveMyRoom();
+    if(sessionService.socket.connected)sessionService.leaveMyRoom();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context){
-
     return Scaffold(
       appBar: AppBar(
         elevation: 1,
         title: const Text('MyChats'),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: (){
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ContactScreen(session: sessionService,))
+          );
+        },
+        child: const Icon(Icons.message),
+      ),
       body: FutureBuilder(
         future: activeRooms,
-        builder: (context, snapshot) {
+        builder: (context, snapshot){
           switch(snapshot.connectionState){
             case ConnectionState.none: return const Text('None');
             case ConnectionState.waiting: return const Loading();
@@ -95,6 +99,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             }
             else{
               return ListView.builder(
+                itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) => ListTile(
                   onTap: (){
                     Navigator.push(
@@ -116,13 +121,26 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   },
                   splashColor: Colors.transparent,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  leading: const CircleAvatar(
+                  leading: ProfilePic(
+                    phoneNumber: snapshot.data![index]['phoneNumber'],
                     radius: 30,
                   ),
                   isThreeLine: false,
                   title: Text(snapshot.data![index]['displayName']),
-                  subtitle: Text(
-                    snapshot.data![index]['lastMessage']['body'],
+                  subtitle: snapshot.data![index]['lastMessage']['isFile'] 
+                  ? const Row(
+                    children: [
+                      Icon(Icons.image, size: 16, color: Colors.white60,),
+                      Text(
+                        ' Image',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w300,
+                          color: Colors.white60,
+                        ),
+                      ),
+                    ],
+                  ):Text(
+                    snapshot.data![index]['lastMessage']['body'] ,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
@@ -158,20 +176,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
-                itemCount: snapshot.data!.length,
               );
             }
           }
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: (){
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ContactScreen(session: sessionService,))
-          );
-        },
-        child: const Icon(Icons.message),
       ),
     );
   }

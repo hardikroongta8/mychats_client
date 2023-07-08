@@ -56,9 +56,15 @@ class _PhoneVerificationState extends State<PhoneVerification> {
   List<String> smsCodeList = ['0', '0', '0', '0', '0', '0'];
 
   final authService = FirebaseAuth.instance;
+  
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
+
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 

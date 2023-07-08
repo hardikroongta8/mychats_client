@@ -7,6 +7,54 @@ import 'package:mychats/shared/endpoints.dart';
 class ChatService{
   final _dio = ApiService().dio;
 
+  Future<Map> getUserInfo(String phoneNumber)async{
+    try {
+      Response res = await _dio.get(
+        '${Endpoints.baseUrl}/user/get_user_info/$phoneNumber'
+      );
+
+      if(res.statusCode == 200){
+        return res.data;
+      }else{
+        return Future.error(res.statusMessage.toString());
+      }
+    }catch(e){
+      return Future.error(e.toString());
+    }
+  }
+
+  Future<String?> getUserAbout(String phoneNumber)async{
+    try {
+      Response res = await _dio.get(
+        '${Endpoints.baseUrl}/user/get_user_about/$phoneNumber'
+      );
+
+      if(res.statusCode == 200){
+        return res.data['about'];
+      }else{
+        return Future.error(res.statusMessage.toString());
+      }
+    }catch(e){
+      return Future.error(e.toString());
+    }
+  }
+
+  Future<String?> getUserDp(String phoneNumber)async{
+    try {
+      Response res = await _dio.get(
+        '${Endpoints.baseUrl}/user/get_user_dp/$phoneNumber'
+      );
+
+      if(res.statusCode == 200){
+        return res.data['profilePicUrl'];
+      }else{
+        return Future.error(res.statusMessage.toString());
+      }
+    }catch(e){
+      return Future.error(e.toString());
+    }
+  }
+
   Future<List> getActiveChats()async{
     try{
       final String firebaseId = AuthService().firebaseId!;

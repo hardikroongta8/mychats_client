@@ -18,20 +18,20 @@ class _WrapperState extends State<Wrapper> {
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<User?>(context);
-    final boolProvider = Provider.of<BoolProvider>(context);
+    final isProfileCreated = Provider.of<IsProfileCreatedProvider>(context);
 
     void setBoolValue()async{
       bool val = await SharedPrefs.isProfileCreated();
 
-      if(boolProvider.value != val){
-        boolProvider.setValue(val);
+      if(isProfileCreated.value != val){
+        isProfileCreated.setValue(val);
       }
     }
 
     if(user != null){
       setBoolValue();
 
-      if(boolProvider.value){
+      if(isProfileCreated.value){
         return const Home();
       }
       else{
@@ -45,7 +45,7 @@ class _WrapperState extends State<Wrapper> {
 }
 
 
-class BoolProvider extends ChangeNotifier{
+class IsProfileCreatedProvider extends ChangeNotifier{
   bool value = false;
 
   void setValue(bool val){

@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
         ),
         home: ChangeNotifierProvider(
-          create: (context) => BoolProvider(),
+          create: (context) => IsProfileCreatedProvider(),
           builder: (context, _){
             return const Wrapper();
           },

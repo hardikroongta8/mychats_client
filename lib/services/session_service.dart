@@ -19,12 +19,20 @@ class SessionService{
   }
 
   void joinMyRoom(){
+    if(AuthService().phoneNumber == null){
+      disconnectSocket();
+      return;
+    }
     socket.emit('joinRoom', {
       'roomId': AuthService().phoneNumber!
     });
   }
 
   void leaveMyRoom(){
+    if(AuthService().phoneNumber == null){
+      disconnectSocket();
+      return;
+    }
     socket.emit('leaveRoom', {
       'roomId': AuthService().phoneNumber!
     });
@@ -46,10 +54,15 @@ class SessionService{
     });
   }
 
-  void sendMessage(String message, String theirPhoneNumber){
+  void sendMessage({required String body, bool? isFile, required String theirPhoneNumber}){
+    if(AuthService().phoneNumber == null){
+      disconnectSocket();
+      return;
+    }
     socket.emit('sendMessage', {
       'roomId': getRoomId(theirPhoneNumber),
-      'body': message,
+      'body': body,
+      'isFile': isFile ?? false,
       'sendingTime': DateTime.now().toString(),
       'sentBy': AuthService().phoneNumber!
     });

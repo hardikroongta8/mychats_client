@@ -1,6 +1,13 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SharedPrefs{
+  static Future<void> deleteTokens()async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    await prefs.remove('accessToken');
+    await prefs.remove('cookieFormatted');
+  }
+
   static Future<void> setAccessToken(String token)async{
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -13,16 +20,16 @@ class SharedPrefs{
     return prefs.getString('accessToken');
   }
 
-  static Future<void> setRefreshToken(String token)async{
+  static Future<void> saveCookieFormatted(String cookieFormatted)async{
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    await prefs.setString('refreshToken', token);
+    await prefs.setString('cookieFormatted', cookieFormatted);
   }
 
-  static Future<String?> getRefreshToken()async{
+  static Future<String?> getCookieFormatted()async{
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    return prefs.getString('refreshToken');
+    return prefs.getString('cookieFormatted');
   }
 
   static Future<void> setIsProfileCreated(bool value)async{

@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:developer';
+import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -56,7 +56,7 @@ class _SetupProfileState extends State<SetupProfile> {
 
   @override
   Widget build(BuildContext context) {
-    final boolProvider = Provider.of<BoolProvider>(context);
+    final boolProvider = Provider.of<IsProfileCreatedProvider>(context);
     final user = Provider.of<User?>(context);
 
     final screenWidth = MediaQuery.of(context).size.width;
@@ -150,9 +150,11 @@ class _SetupProfileState extends State<SetupProfile> {
                     setState(() {
                       isLoading = true;
                     });
-                    List<int>? imageData;
 
-                    if(image!=null)imageData = await image!.readAsBytes();
+                    String? imageUrl;
+                    if(image != null)imageUrl = await ImageService().uploadImage(image!);
+
+                    log('Image url: $imageUrl');
 
                     MyChatsUser myUser = MyChatsUser(
                       firebaseId: user!.uid, 
@@ -160,14 +162,13 @@ class _SetupProfileState extends State<SetupProfile> {
                       fullName: fullNameController.text.trim(), 
                       contactInfo: contactInfo,
                       about: aboutController.text,
-                      profilePicData: imageData == null ? null : base64Encode(imageData)
+                      profilePicData: imageUrl
                     );
 
                     Map tokens = await MongoDBService().signinUser(myUser);
 
                     await SharedPrefs.setIsProfileCreated(true);
-                    await SharedPrefs.setAccessToken(tokens['accessToken']);
-                    await SharedPrefs.setRefreshToken(tokens['refreshToken']);                    
+                    await SharedPrefs.setAccessToken(tokens['accessToken']);                   
 
                     boolProvider.setValue(true);
                   },

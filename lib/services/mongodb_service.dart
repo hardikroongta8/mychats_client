@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:mychats/models/my_chats_user.dart';
 import 'package:mychats/services/api_service.dart';
@@ -25,7 +26,6 @@ class MongoDBService{
       if(res.statusCode == 200){
         return {
           'accessToken': res.data['accessToken'].toString(),
-          'refreshToken': res.data['refreshToken'].toString()
         };
       }
 
@@ -50,7 +50,7 @@ class MongoDBService{
     }
   }
 
-  Future<List<Map<String, String>>> getMessages(String roomId)async{
+  Future<List<Map<String, dynamic>>> getMessages(String roomId)async{
     try {
       String myPhoneNumber = AuthService().phoneNumber!;
       Response res = await _dio.get(
@@ -59,12 +59,14 @@ class MongoDBService{
 
       if(res.statusCode == 200){
         final msgs = res.data['messageList'];
-        List<Map<String, String>> m = [];
+        
+        List<Map<String, dynamic>> m = [];
         for(int i = 0; i < msgs.length; i++){
           m.add({
             'body': msgs[i]['body'] as String,
             'sentBy': msgs[i]['sentBy'] as String,
             'sendingTime': msgs[i]['sendingTime'] as String,
+            'isFile': msgs[i]['isFile'] as bool,
             'roomId': roomId
           });
         }

@@ -7,7 +7,7 @@ import 'package:mychats/shared/header_keys.dart';
 
 class AuthFunctions{
   Future<bool> regenerateAccessToken()async{
-    String refreshToken = await SharedPrefs.getRefreshToken() ?? ' ';
+    String cookieFormatted = await SharedPrefs.getCookieFormatted() ?? '';
     try {
       Dio dio = Dio(
         BaseOptions(
@@ -19,7 +19,7 @@ class AuthFunctions{
 
       Response res = await dio.post(
         '/user/refresh_token',
-        options: Options(headers: {'authorization': 'Bearer $refreshToken'})
+        options: Options(headers: {'cookie': cookieFormatted}),
       );
 
       if(res.statusCode == 200){

@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mychats/models/message.dart';
+import 'package:mychats/services/image_service.dart';
 import 'package:mychats/services/mongodb_service.dart';
 import 'package:mychats/services/session_service.dart';
 import 'package:mychats/shared/globals.dart';
 import 'package:mychats/shared/loading.dart';
-
-
 import 'package:mychats/widgets/message_block.dart';
+import 'package:mychats/widgets/photo_block.dart';
+import 'package:mychats/widgets/profile_pic.dart';
+
 
 class PersonalChat extends StatefulWidget {
   final String phoneNumber;
@@ -26,7 +29,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
 
   late Timer periodicTimer;
 
-  late Future<List<Map<String, String>>> allMessages;
+  late Future<List<Map<String, dynamic>>> allMessages;
   List<Map> socketMessages = [];
 
   List<Widget> messageBlocks = [];
@@ -35,11 +38,13 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   String status = 'Online';
 
 
-  List<Widget> getMessageBlockList(List<Map<String, String>> messageList){
+  List<Widget> getMessageBlockList(List<Map<String, dynamic>> messageList){
     messageBlocks = [];
     for(var message in messageList){
       messageBlocks.add(
-        MessageBlock(message: Message.fromJson(message))
+        message['isFile'] == true
+        ? PhotoBlock(photo: Photo.fromJson(message)) 
+        : MessageBlock(message: Message.fromJson(message))
       );
     }
     return messageBlocks;
@@ -138,15 +143,21 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.session.joinPersonalRoom(widget.phoneNumber);
+
+    String? roomId = getRoomId(widget.phoneNumber);
+    if(roomId == null)widget.session.disconnectSocket();
     
-    allMessages = MongoDBService().getMessages(getRoomId(widget.phoneNumber));
+    allMessages = MongoDBService().getMessages(roomId!);
 
     widget.session.socket.on('sentMessage',
       (data){
         log('Message received');
+        // log(data['isFile']);
         if(mounted){
           setState(() {
-            messageBlocks.add(MessageBlock(message: Message.fromJson(data)));
+            messageBlocks.add(
+              data['isFile'] ? PhotoBlock(photo: Photo.fromJson(data)) : MessageBlock(message: Message.fromJson(data))
+            );
             socketMessages.add(data);
           });
         }
@@ -198,13 +209,53 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+
+    void sendImage(File image){
+      showModalBottomSheet(
+        context: context,
+        builder: (context) {
+          return Container(
+            height: 500,
+            width: double.infinity,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                children: [
+                  Container(
+                    height: 300,
+                    child: Image.file(
+                      image,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: ()async{
+                      String imageUrl = await ImageService().uploadImage(image);
+                      log(imageUrl);
+                      Navigator.pop(context);
+                      widget.session.sendMessage(
+                        body: imageUrl,
+                        isFile: true,
+                        theirPhoneNumber: widget.phoneNumber
+                      );
+                    },
+                    child: const Text('Send')
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         elevation: 1,
         title: SizedBox(
           child: Row(
             children: [
-              const CircleAvatar(),
+              ProfilePic(phoneNumber: widget.phoneNumber),
               const SizedBox(width: 10,),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,7 +329,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
                 child: Row(
                   children: [
                     SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.85,
+                      width: MediaQuery.of(context).size.width * 0.70,
                       height: MediaQuery.of(context).size.width * 0.12,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
@@ -309,9 +360,53 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
                       radius: MediaQuery.of(context).size.width * 0.06,
                       child: Center(
                         child: IconButton(
+                          onPressed: ()async{
+                            File? image;
+                            //show
+                            showModalBottomSheet(
+                              context: context, 
+                              builder: (context) => SizedBox(
+                                width: double.infinity,
+                                height: 100,
+                                child: Column(
+                                  children: [
+                                    TextButton(
+                                      onPressed: ()async{
+                                        Navigator.pop(context);
+                                        image = await ImageService().pickImage(true);
+                                        sendImage(image!);
+                                      },
+                                      child: const Text('Capture an image')
+                                    ),
+                                    TextButton(
+                                      onPressed: ()async{
+                                        Navigator.pop(context);
+                                        image = await ImageService().pickImage(false);
+                                        sendImage(image!);
+                                      },
+                                      child: const Text('Pick from gallery')
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                            
+                          },
+                          icon: const Icon(Icons.link_rounded),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10,),
+                    CircleAvatar(
+                      radius: MediaQuery.of(context).size.width * 0.06,
+                      child: Center(
+                        child: IconButton(
                           onPressed: (){
                             if(_controller.text.isEmpty)return;
-                            widget.session.sendMessage(_controller.text, widget.phoneNumber);
+                            widget.session.sendMessage(
+                              body: _controller.text, 
+                              theirPhoneNumber: widget.phoneNumber
+                            );
                             _controller.clear();
                           },
                           icon: const Icon(Icons.send)
