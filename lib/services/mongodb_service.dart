@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'package:dio/dio.dart';
 import 'package:mychats/models/my_chats_user.dart';
 import 'package:mychats/services/api_service.dart';
@@ -18,6 +17,7 @@ class MongoDBService{
           'firebaseId': myUser.firebaseId,
           'phoneNumber': myUser.phoneNumber,
           'about': myUser.about,
+          'profilePicUrl': myUser.profilePicUrl,
           'contactInfo': myUser.contactInfo,
           'groups': []
         })

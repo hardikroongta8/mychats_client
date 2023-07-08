@@ -4,7 +4,7 @@ class MyChatsUser{
   String fullName;
   String about;
   List<Map> contactInfo;
-  String? profilePicData;
+  String? profilePicUrl;
   List<String>? groups;
 
   MyChatsUser({
@@ -12,7 +12,7 @@ class MyChatsUser{
     required this.phoneNumber,
     required this.fullName,
     required this.contactInfo,
-    this.profilePicData,
+    this.profilePicUrl,
     this.groups,
     required this.about
   });

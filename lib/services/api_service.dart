@@ -1,7 +1,6 @@
 import 'dart:developer';
 
 import 'package:dio/dio.dart';
-import 'package:mychats/services/auth_service.dart';
 import 'package:mychats/services/shared_prefs.dart';
 import 'package:mychats/shared/auth_functions.dart';
 import 'package:mychats/shared/endpoints.dart';

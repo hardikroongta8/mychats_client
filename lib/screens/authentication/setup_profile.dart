@@ -1,9 +1,9 @@
-import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_image/flutter_native_image.dart';
 import 'package:mychats/services/image_service.dart';
 import 'package:mychats/services/my_contact_service.dart';
 import 'package:mychats/services/shared_prefs.dart';
@@ -106,7 +106,14 @@ class _SetupProfileState extends State<SetupProfile> {
                   },
                   child: CircleAvatar(
                     radius: screenWidth * 0.35,
-                    backgroundImage: image == null ? null : FileImage(image!),
+                    child: image == null 
+                    ? Icon(
+                      Icons.person_rounded, 
+                      size:  1.3*0.35*screenWidth,
+                    ): CircleAvatar(
+                      radius: screenWidth * 0.35,
+                      backgroundImage: FileImage(image!),
+                    ),
                   ),
                 ),
                 SizedBox(
@@ -152,7 +159,10 @@ class _SetupProfileState extends State<SetupProfile> {
                     });
 
                     String? imageUrl;
-                    if(image != null)imageUrl = await ImageService().uploadImage(image!);
+                    if(image != null){
+                      File compressedImage = await FlutterNativeImage.compressImage(image!.path, quality: 25);
+                      imageUrl = await ImageService().uploadImage(compressedImage);
+                    }
 
                     log('Image url: $imageUrl');
 
@@ -162,7 +172,7 @@ class _SetupProfileState extends State<SetupProfile> {
                       fullName: fullNameController.text.trim(), 
                       contactInfo: contactInfo,
                       about: aboutController.text,
-                      profilePicData: imageUrl
+                      profilePicUrl: imageUrl
                     );
 
                     Map tokens = await MongoDBService().signinUser(myUser);
