@@ -14,7 +14,7 @@ class ProfilePic extends StatelessWidget {
         future: ChatService().getUserDp(phoneNumber),
         builder: (context, snapshot2) {
           if(!snapshot2.hasData || snapshot2.data == null){
-            return const Icon(Icons.person_rounded, size: 42,);  
+            return Icon(Icons.person_rounded, size: radius == null ? 30 : 1.3*radius!,);
           }else if(snapshot2.hasError){
             return CircleAvatar(radius: radius,);
           }else{

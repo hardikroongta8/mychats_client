@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:mychats/models/message.dart';
+import 'package:mychats/screens/chats/send_photo.dart';
 import 'package:mychats/services/image_service.dart';
 import 'package:mychats/services/mongodb_service.dart';
 import 'package:mychats/services/session_service.dart';
@@ -209,43 +210,18 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
-
-    void sendImage(File image){
-      showModalBottomSheet(
-        context: context,
-        builder: (context) {
-          return Container(
-            height: 500,
-            width: double.infinity,
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                children: [
-                  Container(
-                    height: 300,
-                    child: Image.file(
-                      image,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: ()async{
-                      String imageUrl = await ImageService().uploadImage(image);
-                      log(imageUrl);
-                      Navigator.pop(context);
-                      widget.session.sendMessage(
-                        body: imageUrl,
-                        isFile: true,
-                        theirPhoneNumber: widget.phoneNumber
-                      );
-                    },
-                    child: const Text('Send')
-                  )
-                ],
-              ),
-            ),
-          );
-        },
+    void processImage(File image){
+      Navigator.push(
+        context,
+        MaterialPageRoute( 
+          builder: (context) {
+            return SendPhoto(
+              image: image,
+              sessionService: widget.session,
+              phoneNumber: widget.phoneNumber
+            );
+          },
+        )
       );
     }
 
@@ -362,30 +338,38 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
                         child: IconButton(
                           onPressed: ()async{
                             File? image;
-                            //show
                             showModalBottomSheet(
                               context: context, 
                               builder: (context) => SizedBox(
                                 width: double.infinity,
                                 height: 100,
-                                child: Column(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                   children: [
-                                    TextButton(
-                                      onPressed: ()async{
+                                    GestureDetector(
+                                      onTap: ()async{
                                         Navigator.pop(context);
                                         image = await ImageService().pickImage(true);
-                                        sendImage(image!);
+                                        processImage(image!);
                                       },
-                                      child: const Text('Capture an image')
+                                      child: const CircleAvatar(
+                                        radius: 30,
+                                        backgroundColor: Colors.pink,
+                                        child: Icon(Icons.camera_alt_rounded, size: 32,),
+                                      ),
                                     ),
-                                    TextButton(
-                                      onPressed: ()async{
+                                    GestureDetector(
+                                      onTap: ()async{
                                         Navigator.pop(context);
                                         image = await ImageService().pickImage(false);
-                                        sendImage(image!);
+                                        processImage(image!);
                                       },
-                                      child: const Text('Pick from gallery')
-                                    ),
+                                      child: const CircleAvatar(
+                                        radius: 30,
+                                        backgroundColor: Colors.purple,
+                                        child: Icon(Icons.image_rounded, size: 32,),
+                                      ),
+                                    ),                                    
                                   ],
                                 ),
                               ),
