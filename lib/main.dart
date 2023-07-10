@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           brightness: Brightness.dark,
-          colorSchemeSeed: Colors.red,
+          colorSchemeSeed: Colors.blue[800],
           useMaterial3: true,
         ),
         home: ChangeNotifierProvider(

@@ -41,8 +41,8 @@ class MessageBlock extends StatelessWidget {
           width: textSize(message.body, Styles().messageTextStyle).width  + 60,
           decoration: BoxDecoration(
             color: message.sentBy == AuthService().phoneNumber! 
-              ? Colors.red[900]
-              : const Color.fromRGBO(99, 66, 66, 1),
+              ? Colors.blue[800]
+              : Colors.white10,
             borderRadius: BorderRadius.circular(12)
           ),
           child: Padding(

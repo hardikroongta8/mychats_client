@@ -24,6 +24,8 @@ class _SetupProfileState extends State<SetupProfile> {
   bool isLoading = false;
   File? image;
 
+  final formKey = GlobalKey<FormState>();
+
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController aboutController = TextEditingController(text: 'Hey there! I am using MyChats.');
 
@@ -52,8 +54,6 @@ class _SetupProfileState extends State<SetupProfile> {
     getContacts();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final boolProvider = Provider.of<IsProfileCreatedProvider>(context);
@@ -65,6 +65,7 @@ class _SetupProfileState extends State<SetupProfile> {
     return isLoading ? const Loading() : Scaffold(
       appBar: AppBar(
         title: const Text('Setup your profile'),
+        elevation: 1,
       ),
       body: Center(
         child: SizedBox(
@@ -78,30 +79,40 @@ class _SetupProfileState extends State<SetupProfile> {
                 ),
                 GestureDetector(
                   onTap: (){
+                    FocusManager.instance.primaryFocus!.unfocus();
                     showModalBottomSheet(
                       context: context, 
                       builder: (context) => SizedBox(
                         width: double.infinity,
-                        height: screenHeight*0.15,
-                        child: Column(
+                        height: 100,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
-                            TextButton(
-                              onPressed: (){
+                            GestureDetector(
+                              onTap: (){
                                 Navigator.pop(context);
                                 pickImage(true);
                               },
-                              child: const Text('Capture an image')
+                              child: const CircleAvatar(
+                                radius: 30,
+                                backgroundColor: Colors.pink,
+                                child: Icon(Icons.camera_alt_rounded, size: 32,),
+                              ),
                             ),
-                            TextButton(
-                              onPressed: (){
+                            GestureDetector(
+                              onTap: ()async{
                                 Navigator.pop(context);
                                 pickImage(false);
                               },
-                              child: const Text('Pick from gallery')
-                            ),
+                              child: const CircleAvatar(
+                                radius: 30,
+                                backgroundColor: Colors.purple,
+                                child: Icon(Icons.image_rounded, size: 32,),
+                              ),
+                            ),                                    
                           ],
                         ),
-                      ),
+                      )
                     );
                   },
                   child: CircleAvatar(
@@ -119,74 +130,88 @@ class _SetupProfileState extends State<SetupProfile> {
                 SizedBox(
                   height: screenHeight*0.08,
                 ),
-                SizedBox(
-                  width: 0.8*screenWidth,
-                  child: TextFormField(
-                    controller: fullNameController,
-                    textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      hintText: 'Full Name',
-                      fillColor: Colors.white10,
-                      filled: true,
-                      icon: Icon(Icons.person_rounded, size: 32),
-                      isDense: true,
-                    ),
+                Form(
+                  key: formKey,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: 0.8*screenWidth,
+                        child: TextFormField(
+                          controller: fullNameController,
+                          
+                          validator: (value) {
+                            if(value == null || value.isEmpty){
+                              return 'Please enter your name.';
+                            }
+                            return null;
+                          },
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            hintText: 'Full Name',
+                            fillColor: Colors.white10,
+                            filled: true,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: screenHeight*0.05,
+                      ),
+                      SizedBox(
+                        width: 0.8*screenWidth,
+                        child: TextFormField(
+                          controller: aboutController,
+                          decoration: const InputDecoration(
+                            hintText: 'About',
+                            fillColor: Colors.white10,
+                            filled: true,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: screenHeight*0.08,
+                      ),
+                      ElevatedButton(
+                        onPressed: ()async{
+                          if(formKey.currentState!.validate()){
+                            setState(() {
+                              isLoading = true;
+                            });
+                            
+                            String? imageUrl;
+                            if(image != null){
+                              File compressedImage = await FlutterNativeImage.compressImage(image!.path, quality: 25);
+                              imageUrl = await ImageService().uploadImage(compressedImage);
+                            }
+                            
+                            log('Image url: $imageUrl');
+                            
+                            MyChatsUser myUser = MyChatsUser(
+                              firebaseId: user!.uid, 
+                              phoneNumber: user.phoneNumber!,
+                              fullName: fullNameController.text.trim(), 
+                              contactInfo: contactInfo,
+                              about: aboutController.text,
+                              profilePicUrl: imageUrl
+                            );
+                            
+                            Map tokens = await MongoDBService().signinUser(myUser);
+                            
+                            await SharedPrefs.setIsProfileCreated(true);
+                            await SharedPrefs.setAccessToken(tokens['accessToken']);                   
+                            
+                            boolProvider.setValue(true);
+                          }
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(Colors.blue[800]),
+                          foregroundColor: MaterialStateProperty.all(Colors.white70)
+                        ),
+                        child: const Text('Next')
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(
-                  height: screenHeight*0.05,
-                ),
-                SizedBox(
-                  width: 0.8*screenWidth,
-                  child: TextFormField(
-                    controller: aboutController,
-                    decoration: const InputDecoration(
-                      hintText: 'About',
-                      fillColor: Colors.white10,
-                      filled: true,
-                      icon: Icon(Icons.info_outline_rounded, size: 32,),
-                      isDense: true,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  height: screenHeight*0.08,
-                ),
-                ElevatedButton(
-                  onPressed: ()async{
-                    setState(() {
-                      isLoading = true;
-                    });
-
-                    String? imageUrl;
-                    if(image != null){
-                      File compressedImage = await FlutterNativeImage.compressImage(image!.path, quality: 25);
-                      imageUrl = await ImageService().uploadImage(compressedImage);
-                    }
-
-                    log('Image url: $imageUrl');
-
-                    MyChatsUser myUser = MyChatsUser(
-                      firebaseId: user!.uid, 
-                      phoneNumber: user.phoneNumber!,
-                      fullName: fullNameController.text.trim(), 
-                      contactInfo: contactInfo,
-                      about: aboutController.text,
-                      profilePicUrl: imageUrl
-                    );
-
-                    Map tokens = await MongoDBService().signinUser(myUser);
-
-                    await SharedPrefs.setIsProfileCreated(true);
-                    await SharedPrefs.setAccessToken(tokens['accessToken']);                   
-
-                    boolProvider.setValue(true);
-                  },
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all(Colors.red[900]),
-                    foregroundColor: MaterialStateProperty.all(Colors.white70)
-                  ),
-                  child: const Text('Next')
                 )
               ],
             ),

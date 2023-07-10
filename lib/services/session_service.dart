@@ -68,4 +68,9 @@ class SessionService{
     });
   }
 
+  void typing(String theirPhoneNumber){
+    socket.emit('typing', {
+      'roomId': getRoomId(theirPhoneNumber)
+    });
+  }
 }

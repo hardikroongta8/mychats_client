@@ -29,6 +29,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   final _scrollController = ScrollController();
 
   late Timer periodicTimer;
+  Timer? typingTimer;
 
   late Future<List<Map<String, dynamic>>> allMessages;
   List<Map> socketMessages = [];
@@ -36,7 +37,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   List<Widget> messageBlocks = [];
 
   bool isOnline = false;
-  String status = 'Online';
+  String status = 'online';
 
 
   List<Widget> getMessageBlockList(List<Map<String, dynamic>> messageList){
@@ -44,7 +45,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     for(var message in messageList){
       messageBlocks.add(
         message['isFile'] == true
-        ? PhotoBlock(photo: Photo.fromJson(message)) 
+        ? PhotoBlock(photo: Photo.fromJson(message), displayName: widget.displayName,)
         : MessageBlock(message: Message.fromJson(message))
       );
     }
@@ -130,7 +131,7 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
+  void didChangeAppLifecycleState(AppLifecycleState state){
     super.didChangeAppLifecycleState(state);
 
     if(state == AppLifecycleState.resumed){
@@ -153,15 +154,35 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
     widget.session.socket.on('sentMessage',
       (data){
         log('Message received');
-        // log(data['isFile']);
         if(mounted){
           setState(() {
             messageBlocks.add(
-              data['isFile'] ? PhotoBlock(photo: Photo.fromJson(data)) : MessageBlock(message: Message.fromJson(data))
+              data['isFile'] 
+              ? PhotoBlock(
+                displayName: widget.displayName,
+                photo: Photo.fromJson(data)) 
+              : MessageBlock(message: Message.fromJson(data))
             );
             socketMessages.add(data);
           });
         }
+    });
+
+    widget.session.socket.on('typing', (data){
+      if(mounted) {
+        setState(() {
+          status = 'typing';
+          typingTimer?.cancel();
+        });
+      }
+
+      typingTimer = Timer.periodic(const Duration(seconds: 1), (timer){
+        if(mounted){
+          setState(() {
+            status = 'online';
+          });
+        }
+      });
     });
 
     widget.session.socket.on('dataSaved',
@@ -250,12 +271,6 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
           ),
         ),
         leadingWidth: 20,
-        actions: [
-          IconButton(
-            onPressed: (){},
-            icon: const Icon(Icons.more_vert_rounded)
-          )
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.fromLTRB(0, 5, 0, 0),
@@ -299,20 +314,65 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
               ),
             ),
             SizedBox(
-              height: MediaQuery.of(context).size.height*0.1,
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
                   children: [
                     SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.70,
+                      width: MediaQuery.of(context).size.width * 0.85,
                       height: MediaQuery.of(context).size.width * 0.12,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                         child: TextFormField(
                           controller: _controller,
+                          onChanged: (value){
+                            widget.session.typing(widget.phoneNumber);
+                          }, 
                           decoration: InputDecoration(
                             hintText: 'Message',
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.link_rounded),
+                              onPressed: ()async{
+                                File? image;
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                showModalBottomSheet(
+                                  context: context,
+                                  builder: (context) => SizedBox(
+                                    width: double.infinity,
+                                    height: 100,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        GestureDetector(
+                                          onTap: ()async{
+                                            Navigator.pop(context);
+                                            image = await ImageService().pickImage(true);
+                                            processImage(image!);
+                                          },
+                                          child: const CircleAvatar(
+                                            radius: 30,
+                                            backgroundColor: Colors.pink,
+                                            child: Icon(Icons.camera_alt_rounded, size: 32,),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: ()async{
+                                            Navigator.pop(context);
+                                            image = await ImageService().pickImage(false);
+                                            processImage(image!);
+                                          },
+                                          child: const CircleAvatar(
+                                            radius: 30,
+                                            backgroundColor: Colors.purple,
+                                            child: Icon(Icons.image_rounded, size: 32,),
+                                          ),
+                                        ),                                    
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                             contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
                             enabledBorder: OutlineInputBorder(
                               borderSide: const BorderSide(
@@ -332,55 +392,8 @@ class _PersonalChatState extends State<PersonalChat> with WidgetsBindingObserver
                         ),
                       ),
                     ),
-                    CircleAvatar(
-                      radius: MediaQuery.of(context).size.width * 0.06,
-                      child: Center(
-                        child: IconButton(
-                          onPressed: ()async{
-                            File? image;
-                            showModalBottomSheet(
-                              context: context, 
-                              builder: (context) => SizedBox(
-                                width: double.infinity,
-                                height: 100,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: ()async{
-                                        Navigator.pop(context);
-                                        image = await ImageService().pickImage(true);
-                                        processImage(image!);
-                                      },
-                                      child: const CircleAvatar(
-                                        radius: 30,
-                                        backgroundColor: Colors.pink,
-                                        child: Icon(Icons.camera_alt_rounded, size: 32,),
-                                      ),
-                                    ),
-                                    GestureDetector(
-                                      onTap: ()async{
-                                        Navigator.pop(context);
-                                        image = await ImageService().pickImage(false);
-                                        processImage(image!);
-                                      },
-                                      child: const CircleAvatar(
-                                        radius: 30,
-                                        backgroundColor: Colors.purple,
-                                        child: Icon(Icons.image_rounded, size: 32,),
-                                      ),
-                                    ),                                    
-                                  ],
-                                ),
-                              ),
-                            );
-                            
-                          },
-                          icon: const Icon(Icons.link_rounded),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10,),
+                    
+                    //const SizedBox(width: 10,),
                     CircleAvatar(
                       radius: MediaQuery.of(context).size.width * 0.06,
                       child: Center(
