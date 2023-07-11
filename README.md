@@ -75,6 +75,6 @@ Contributions to MyChats are welcome! If you find any issues or have suggestions
 
 ## Contact
 
-If you have any questions or inquiries, please contact us at support@mychats.com.
+If you have any questions or inquiries, please contact us at hardikroongta8@gmail.com.
 
 Happy chatting with MyChats!
