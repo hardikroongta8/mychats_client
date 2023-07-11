@@ -12,6 +12,9 @@ MyChats is a Flutter-based realtime chatting app that allows users to connect an
 
 ## Getting Started
 
+Don't forget to start the server before running the app.
+- [Github](https://github.com/hardikroongta8/mychats_backend)
+
 To get started with MyChats, follow these steps:
 
 1. Clone the repository:
@@ -46,9 +49,6 @@ flutter run
 - **Flutter Provider**: The Flutter Provider package is used for state management within the app.
 - **Firebase Authentication**: Firebase Authentication is used for user authentication and account management.
 - **Socket.IO**: Used for implementing real-time messaging.
-
-## Backend
-- [Github](https://github.com/hardikroongta8/mychats_backend)
 
 ## Folder Structure
 
