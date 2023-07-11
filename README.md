@@ -17,7 +17,7 @@ To get started with MyChats, follow these steps:
 1. Clone the repository:
 
 ```shell
-git clone https://github.com/hardikroongta8/mychats.git
+git clone https://github.com/hardikroongta8/mychats_client.git
 ```
 
 2. Install the dependencies by running the following command:
