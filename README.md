@@ -70,7 +70,7 @@ mychats/
 - **lib/models**: Contains the data models used in the app.
 - **lib/screens**: Contains the different screens of the app, such as the chat screen, contact list screen, etc.
 - **lib/services**: Contains the services responsible for interacting with Firebase and Server.
-- **lib/shared**: Contains the shared files with constants and globals.
+- **lib/shared**: Contains shared components or utilities that are used across multiple screens or widgets
 - **lib/widgets**: Contains widgets for to make the code concise. 
 - **assets**: Contains static assets such as images and fonts used in the app.
 - **pubspec.yaml**: Defines the app dependencies and configuration.
