@@ -20,19 +20,25 @@ To get started with MyChats, follow these steps:
 git clone https://github.com/hardikroongta8/mychats_client.git
 ```
 
-2. Install the dependencies by running the following command:
+2. Navigate to the project directory:
+
+```shell
+cd mychats_client
+```
+
+3. Install the dependencies by running the following command:
 
 ```shell
 flutter pub get
 ```
 
-3. Run the app on a connected device or emulator:
+4. Run the app on a connected device or emulator:
 
 ```shell
 flutter run
 ```
 
-4. Start using MyChats and enjoy real-time messaging!
+5. Start using MyChats and enjoy real-time messaging!
 
 ## Technologies Used
 
