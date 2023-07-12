@@ -10,6 +10,9 @@ MyChats is a Flutter-based realtime chatting app that allows users to connect an
 - **Contact List**: Maintain a list of your contacts and easily find and chat with them.
 - **Profile Customization**: Personalize your profile by adding a profile picture and setting a status message.
 
+## Screenshots
+You can checkout these [screenshots](https://drive.google.com/drive/folders/1tAkyJa958yoLpkKETplrXkoLEWrGRT9L?usp=sharing) to know about the working of the app.
+
 ## Getting Started
 
 Don't forget to start the server before running the app.
